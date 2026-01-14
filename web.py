@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import shap
 import streamlit as st
+import xgboost as xgb
 
 st.set_page_config(page_title="临床预测与个体解释", layout="wide")
 
@@ -86,7 +87,7 @@ except Exception as exc:
 
 st.subheader("个体 SHAP 解释")
 
-# 对 XGBoost 明确使用 TreeExplainer，避免 shap.Explainer 自动推断失败
+# 使用 XGBoost 原生 pred_contribs 计算 SHAP，避免编码问题
 try:
     feature_names = row.columns.tolist()
     row_np = row.to_numpy(dtype=float)
@@ -97,23 +98,10 @@ try:
     except Exception:
         pass
 
-    explainer = shap.TreeExplainer(model)
-
-    # 二分类：shap_values 常见为 (n_samples, n_features)；部分版本可能返回 list
-    shap_values = explainer.shap_values(row_np)
-
-    expected_value = explainer.expected_value
-    # 兼容：expected_value 可能是数组（例如 [base0, base1]），取正类
-    if isinstance(expected_value, (list, np.ndarray)) and np.ndim(expected_value) > 0:
-        expected_value_use = float(np.array(expected_value).ravel()[-1])
-    else:
-        expected_value_use = float(expected_value)
-
-    # 兼容：shap_values 可能是 list（如 [class0, class1]），取正类
-    if isinstance(shap_values, list):
-        shap_values_use = shap_values[-1]
-    else:
-        shap_values_use = shap_values
+    dmatrix = xgb.DMatrix(row_np, feature_names=feature_names)
+    contribs = model.get_booster().predict(dmatrix, pred_contribs=True)
+    shap_values_use = contribs[:, :-1]
+    expected_value_use = float(contribs[0, -1])
 
     # 构造 Explanation 以便使用新版 shap.plots.waterfall
     exp = shap.Explanation(
