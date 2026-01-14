@@ -19,7 +19,7 @@ input_cols = st.columns(2)
 with input_cols[0]:
     glu_val = st.number_input("GLU (mmol/L)", value=0.0)
     pulse_pressure_val = st.number_input("脉压 PP (mmHg)", value=0.0)
-    gender_label = st.selectbox("性别", ["男", "女"], index=0)
+    gender_label = st.selectbox("性别（男=1，女=2）", ["男", "女"], index=0)
     egfr_val = st.number_input("eGFR (mL/min/1.73m²)", value=0.0)
 with input_cols[1]:
     plt_val = st.number_input("PLT (10^9/L)", value=0.0)
@@ -65,6 +65,10 @@ manual_values = {
     "LDL-C": float(ldl_val),
 }
 row = pd.DataFrame([manual_values], columns=feature_columns)
+
+predict_clicked = st.button("预测发病概率")
+if not predict_clicked:
+    st.stop()
 
 # 预测：建议同时给出类别与概率（临床更直观）
 try:
