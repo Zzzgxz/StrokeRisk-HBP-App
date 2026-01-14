@@ -7,28 +7,25 @@ import shap
 import streamlit as st
 import xgboost as xgb
 
-st.set_page_config(page_title="临床预测与个体解释", layout="wide")
+st.set_page_config(page_title="卒中风险评估", layout="wide")
 
-st.title("临床应用：预测与个体可解释性")
-st.write("使用本地模型文件并手动输入变量，生成预测与 SHAP 解释（含力图）。")
+st.title("卒中风险评估")
+st.write("请输入以下指标，获取个体化卒中风险评估与解释。")
 
-with st.sidebar:
-    st.header("数据与模型")
-    st.markdown("**使用本地模型文件**")
-    model_path = st.text_input("模型路径", value="xgb_model.joblib")
+model_path = "xgb_model.joblib"
 
-    st.markdown("**手动输入变量**")
-    input_cols = st.columns(2)
-    with input_cols[0]:
-        glu_val = st.number_input("GLU", value=0.0)
-        pulse_pressure_val = st.number_input("脉压", value=0.0)
-        gender_label = st.selectbox("性别（男=1，女=0）", ["男", "女"], index=0)
-        egfr_val = st.number_input("eGFR", value=0.0)
-    with input_cols[1]:
-        plt_val = st.number_input("PLT", value=0.0)
-        dbp_val = st.number_input("舒张压", value=0.0)
-        mcv_val = st.number_input("MCV", value=0.0)
-        ldl_val = st.number_input("LDL-C", value=0.0)
+st.markdown("**请输入指标（含单位）**")
+input_cols = st.columns(2)
+with input_cols[0]:
+    glu_val = st.number_input("GLU (mmol/L)", value=0.0)
+    pulse_pressure_val = st.number_input("脉压 PP (mmHg)", value=0.0)
+    gender_label = st.selectbox("性别", ["男", "女"], index=0)
+    egfr_val = st.number_input("eGFR (mL/min/1.73m²)", value=0.0)
+with input_cols[1]:
+    plt_val = st.number_input("PLT (10^9/L)", value=0.0)
+    dbp_val = st.number_input("舒张压 DBP (mmHg)", value=0.0)
+    mcv_val = st.number_input("MCV (fL)", value=0.0)
+    ldl_val = st.number_input("LDL-C (mmol/L)", value=0.0)
 
 
 def load_model(path: str):
@@ -52,17 +49,15 @@ except Exception as exc:
     st.error(f"模型加载失败: {exc}")
 
 if model is None:
-    st.info("请确认模型路径。")
+    st.info("请稍后重试。")
     st.stop()
-
-st.subheader("个体输入")
 
 # 注意：特征名与顺序必须与训练时一致
 feature_columns = ["GLU", "脉压", "性别", "eGFR", "PLT", "舒张压", "MCV", "LDL-C"]
 manual_values = {
     "GLU": float(glu_val),
     "脉压": float(pulse_pressure_val),
-    "性别": 1 if gender_label == "男" else 0,
+    "性别": 1 if gender_label == "男" else 2,
     "eGFR": float(egfr_val),
     "PLT": float(plt_val),
     "舒张压": float(dbp_val),
@@ -70,22 +65,22 @@ manual_values = {
     "LDL-C": float(ldl_val),
 }
 row = pd.DataFrame([manual_values], columns=feature_columns)
-st.dataframe(row, use_container_width=True)
 
 # 预测：建议同时给出类别与概率（临床更直观）
 try:
     pred_class = int(model.predict(row)[0])
     pred_prob = float(model.predict_proba(row)[0, 1]) if hasattr(model, "predict_proba") else None
 
-    st.subheader("预测结果")
-    st.write(f"预测类别(0/1): {pred_class}")
+    st.subheader("评估结果")
     if pred_prob is not None:
-        st.write(f"预测概率P(卒中=1): {pred_prob:.4f}")
+        st.write(f"该个体有 {pred_prob:.2%} 的可能后续发生卒中。")
+    else:
+        st.write(f"该个体后续发生卒中的风险评估为：{pred_class}。")
 except Exception as exc:
     st.error(f"预测失败: {exc}")
     st.stop()
 
-st.subheader("个体 SHAP 解释（力图）")
+st.subheader("个体解释（力图）")
 
 # 使用 XGBoost 原生 pred_contribs 计算 SHAP，避免编码问题
 try:
