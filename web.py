@@ -6,7 +6,7 @@ import pandas as pd
 import shap
 import streamlit as st
 import xgboost as xgb
-shap.initjs()
+
 
 
 st.set_page_config(page_title="临床预测与个体解释", layout="wide")
