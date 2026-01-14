@@ -6,6 +6,8 @@ import pandas as pd
 import shap
 import streamlit as st
 import xgboost as xgb
+shap.initjs()
+
 
 st.set_page_config(page_title="临床预测与个体解释", layout="wide")
 
@@ -22,7 +24,7 @@ with st.sidebar:
     with input_cols[0]:
         glu_val = st.number_input("GLU", value=0.0)
         pulse_pressure_val = st.number_input("脉压", value=0.0)
-        gender_label = st.selectbox("性别（男=1，女=0）", ["男", "女"], index=0)
+        gender_label = st.selectbox("性别", ["男", "女"], index=0)
         egfr_val = st.number_input("eGFR", value=0.0)
     with input_cols[1]:
         plt_val = st.number_input("PLT", value=0.0)
@@ -62,7 +64,7 @@ feature_columns = ["GLU", "脉压", "性别", "eGFR", "PLT", "舒张压", "MCV",
 manual_values = {
     "GLU": float(glu_val),
     "脉压": float(pulse_pressure_val),
-    "性别": 1 if gender_label == "男" else 0,
+    "性别": 1 if gender_label == "男" else 2,
     "eGFR": float(egfr_val),
     "PLT": float(plt_val),
     "舒张压": float(dbp_val),
