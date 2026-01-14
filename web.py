@@ -7,8 +7,6 @@ import shap
 import streamlit as st
 import xgboost as xgb
 
-
-
 st.set_page_config(page_title="临床预测与个体解释", layout="wide")
 
 st.title("临床应用：预测与个体可解释性")
@@ -24,7 +22,7 @@ with st.sidebar:
     with input_cols[0]:
         glu_val = st.number_input("GLU", value=0.0)
         pulse_pressure_val = st.number_input("脉压", value=0.0)
-        gender_label = st.selectbox("性别", ["男", "女"], index=0)
+        gender_label = st.selectbox("性别（男=1，女=0）", ["男", "女"], index=0)
         egfr_val = st.number_input("eGFR", value=0.0)
     with input_cols[1]:
         plt_val = st.number_input("PLT", value=0.0)
@@ -64,7 +62,7 @@ feature_columns = ["GLU", "脉压", "性别", "eGFR", "PLT", "舒张压", "MCV",
 manual_values = {
     "GLU": float(glu_val),
     "脉压": float(pulse_pressure_val),
-    "性别": 1 if gender_label == "男" else 2,
+    "性别": 1 if gender_label == "男" else 0,
     "eGFR": float(egfr_val),
     "PLT": float(plt_val),
     "舒张压": float(dbp_val),
@@ -105,13 +103,6 @@ try:
     shap_values_use = contribs[:, :-1]
     expected_value_use = float(contribs[0, -1])
 
-    # 构造 Explanation 以便使用新版 shap.plots.waterfall
-    exp = shap.Explanation(
-        values=shap_values_use[0],
-        base_values=expected_value_use,
-        data=row_np[0],
-        feature_names=feature_names,
-    )
 except Exception as exc:
     st.error(f"SHAP 计算失败: {exc}")
     st.stop()
@@ -125,6 +116,7 @@ try:
         feature_names=feature_names,
         matplotlib=False,
     )
-    st.components.v1.html(force.html(), height=360)
+    force_html = f"{shap.getjs()}{force.html()}"
+    st.components.v1.html(force_html, height=360)
 except Exception as exc:
     st.error(f"力图绘制失败: {exc}")
