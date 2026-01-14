@@ -88,10 +88,19 @@ st.subheader("个体 SHAP 解释")
 
 # 对 XGBoost 明确使用 TreeExplainer，避免 shap.Explainer 自动推断失败
 try:
+    feature_names = row.columns.tolist()
+    row_np = row.to_numpy(dtype=float)
+
+    # 显式覆盖特征名，规避编码异常
+    try:
+        model.get_booster().feature_names = feature_names
+    except Exception:
+        pass
+
     explainer = shap.TreeExplainer(model)
 
     # 二分类：shap_values 常见为 (n_samples, n_features)；部分版本可能返回 list
-    shap_values = explainer.shap_values(row)
+    shap_values = explainer.shap_values(row_np)
 
     expected_value = explainer.expected_value
     # 兼容：expected_value 可能是数组（例如 [base0, base1]），取正类
@@ -110,8 +119,8 @@ try:
     exp = shap.Explanation(
         values=shap_values_use[0],
         base_values=expected_value_use,
-        data=row.iloc[0].values,
-        feature_names=row.columns.tolist(),
+        data=row_np[0],
+        feature_names=feature_names,
     )
 except Exception as exc:
     st.error(f"SHAP 计算失败: {exc}")
@@ -133,8 +142,8 @@ with col2:
         force = shap.force_plot(
             expected_value_use,
             shap_values_use[0],
-            row.iloc[0],
-            feature_names=row.columns.tolist(),
+            row_np[0],
+            feature_names=feature_names,
             matplotlib=False,
         )
         st.components.v1.html(force.html(), height=360)
