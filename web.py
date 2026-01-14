@@ -85,7 +85,7 @@ except Exception as exc:
     st.error(f"预测失败: {exc}")
     st.stop()
 
-st.subheader("个体 SHAP 解释")
+st.subheader("个体 SHAP 解释（力图）")
 
 # 使用 XGBoost 原生 pred_contribs 计算 SHAP，避免编码问题
 try:
@@ -114,26 +114,15 @@ except Exception as exc:
     st.error(f"SHAP 计算失败: {exc}")
     st.stop()
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("**SHAP Waterfall 图**")
-    try:
-        fig = shap.plots.waterfall(exp, show=False)
-        st.pyplot(fig, clear_figure=True)
-    except Exception as exc:
-        st.error(f"Waterfall 图绘制失败: {exc}")
-
-with col2:
-    st.markdown("**SHAP 力图**")
-    try:
-        force = shap.force_plot(
-            expected_value_use,
-            shap_values_use[0],
-            row_np[0],
-            feature_names=feature_names,
-            matplotlib=False,
-        )
-        st.components.v1.html(force.html(), height=360)
-    except Exception as exc:
-        st.error(f"力图绘制失败: {exc}")
+st.markdown("**SHAP 力图**")
+try:
+    force = shap.force_plot(
+        expected_value_use,
+        shap_values_use[0],
+        row_np[0],
+        feature_names=feature_names,
+        matplotlib=False,
+    )
+    st.components.v1.html(force.html(), height=360)
+except Exception as exc:
+    st.error(f"力图绘制失败: {exc}")
